@@ -45,14 +45,20 @@ wss.on('connection', (ws, req) => {
         viewerSockets.add(ws);
         console.log(`Total viewers: ${viewerSockets.size}`);
 
-        ws.on('close', () => {
-            console.log('Viewer disconnected');
-            viewerSockets.delete(ws);
-            console.log(`Total viewers: ${viewerSockets.size}`);
+        ws.on('message', (message) => {
+            try {
+                const data = JSON.parse(message);
+                if (data.action === 'switch_camera' && cameraSocket && cameraSocket.readyState === WebSocket.OPEN) {
+                    console.log('Switch camera command received from viewer. Forwarding to camera.');
+                    cameraSocket.send(JSON.stringify({ action: 'switch_camera' }));
+                }
+            } catch (e) {
+                console.error('Failed to parse message from viewer:', e);
+            }
         });
 
-        ws.on('error', (error) => {
-            console.error('Viewer WebSocket error:', error);
+        ws.on('close', () => {
+            console.log('Viewer disconnected');
             viewerSockets.delete(ws);
             console.log(`Total viewers: ${viewerSockets.size}`);
         });
